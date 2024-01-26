@@ -1,0 +1,254 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.resources.namespace }} #TODO: Parametrized the name of the Namespace
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-file-credentials
+  namespace: {{ .Values.resources.namespace }}
+type: Opaque
+stringData:
+  azurestorageaccountname: odoosa #TODO: Parametrized the Storage Account Name
+  azurestorageaccountkey: p03h3bIqESDwMC9A9Szl8hNPssExbLhT4pvMcxLmIlfhN3lrD2bwSHIOHeW5JvYQeR5asCtatTmM+AStO1hvwQ== #TODO: Parametrized the Storage Account Key
+---
+#################################
+#           Postgres            #
+#################################
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: file.csi.azure.com
+  name: postgres-data-pv #TODO: Parametrized the Persistent Volume Name for the Postgres PV
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  capacity:
+    storage: 2Gi #TODO: Parametrized the storage size for the Postgres PV
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azurefile-csi-premium
+  csi:
+    driver: file.csi.azure.com
+    volumeHandle: >- #TODO: Use parametrized values to compose the Volume Handle for the Postgres PV
+      kubernetes-test#odoosa#postgres-data-fs###odoo-dev 
+    volumeAttributes:
+      protocol: nfs
+      storageAccount: odoosa #TODO: Use parametrized value of Storage Account Name
+      shareName: postgres-data-fs #TODO: Parametrized the File Share Name within the Storage Account for the Postgres PV
+      server: odoosa.file.core.windows.net #TODO: Parametrized the Server URL for the File Share within the Storage Account for the Postgres PV
+    nodeStageSecretRef:
+      name: azure-file-credentials
+      namespace: {{ .Values.resources.namespace }}
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data-pvc #TODO: Parametrized the name of the Postgres PVC
+  namespace: {{ .Values.resources.namespace }} #TODO: Use the parametrized value of the namespace
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 2Gi #TODO: Parametrized the storage size to claim for the Postgres PVC
+  volumeName: postgres-data-pv #TODO: Use the parametrized value of the Persistent Volume Name for the Postgres PV
+  storageClassName: azurefile-csi-premium
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:16
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "100m"
+        ports:
+        - containerPort: 5432
+        env:
+          - name: POSTGRES_USER
+            value: usr_odoo
+          - name: POSTGRES_PASSWORD
+            value: Q37zfHgsswMnYQnKPZG4XQ5p
+          - name: PGDATA
+            value: /var/lib/postgresql/accounterprise-ce/
+        volumeMounts:
+        - mountPath: "/var/lib/postgresql"
+          name: postgres-data-v
+          readOnly: false
+      volumes:
+      - name: postgres-data-v
+        persistentVolumeClaim:
+          claimName: postgres-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: {{ .Values.resources.namespace }}
+  labels:
+    app: postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: postgres
+  ports:
+  - port: 15401
+    targetPort: 5432
+---
+#################################
+#             Odoo              #
+#################################
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: odoo-config-cm
+  namespace: {{ .Values.resources.namespace }}
+data:
+  odoo.conf: |
+    [options]
+    db_name = accounterprise-ce
+    db_sslmode = disable
+    dbfilter = 
+    list_db = False
+    db_template = template1
+    addons_path = /mnt/extra-addons
+    data_dir = /var/lib/odoo
+    
+    # Connection options
+    workers = 3
+    max_cron_threads = 2
+    limit_memory_hard = 2684354560
+    limit_memory_soft = 2147483648
+    limit_request = 8192
+    limit_time_cpu = 240
+    limit_time_real = 240
+    limit_time_real_cron = -1
+    gevent_port = 8072
+
+    # Demo Data options
+    without_demo = all
+
+    # HTTP options
+    proxy_mode = True
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: file.csi.azure.com
+  name: odoo-data-pv
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azurefile-csi-premium
+  csi:
+    driver: file.csi.azure.com
+    volumeHandle: >-
+      kubernetes-test#odoosa#odoo-data-fs###odoo-dev
+    volumeAttributes:
+      protocol: nfs
+      storageAccount: odoosa
+      shareName: odoo-data-fs
+      server: odoosa.file.core.windows.net
+    nodeStageSecretRef:
+      name: azure-file-credentials
+      namespace: {{ .Values.resources.namespace }}
+  volumeMode: Filesystem
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: odoo-data-pvc
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  volumeName: odoo-data-pv
+  storageClassName: azurefile-csi-premium
+  volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: odoo-deployment
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: odoo
+  template:
+    metadata:
+      labels:
+        app: odoo
+    spec:
+      containers:
+      - name: odoo
+        image: odoo:16.0
+        resources:
+          limits:
+            memory: "512Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 8069
+        env:
+          - name: HOST
+            value: postgres-service
+          - name: PORT
+            value: "15401"
+          - name: USER
+            value: usr_odoo
+          - name: PASSWORD
+            value: Q37zfHgsswMnYQnKPZG4XQ5p
+        volumeMounts:
+          - mountPath: "/var/lib/odoo"
+            name: odoo-data-v
+            readOnly: false
+          - mountPath: "/etc/odoo/"
+            name: odoo-config-v
+            readOnly: false
+      volumes:
+        - name: odoo-data-v
+          persistentVolumeClaim:
+            claimName: odoo-data-pvc
+        - name: odoo-config-v
+          configMap:
+            name: odoo-config-cm
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: odoo-service
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  type: LoadBalancer
+  selector:
+    app: odoo
+  ports:
+  - port: 19801
+    targetPort: 8069
