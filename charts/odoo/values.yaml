@@ -43,9 +43,9 @@ environment:
       name: "accounterprise-ce-odoo-deployment"
       replicas: "1"
       container:
-        name: "postgres"
-        imageName: "postgres"
-        imageTag: "16"
+        name: "odoo"
+        imageName: "odoo"
+        imageTag: "16.0"
         limits:
           memory: "512Mi"
           cpu: "200m"
