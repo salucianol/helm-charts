@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: {{ .Values.resources.namespace }} #TODO: Parametrized the name of the Namespace
+  name: {{ .Values.resources.namespace }}
 ---
 apiVersion: v1
 kind: Secret
@@ -10,8 +10,8 @@ metadata:
   namespace: {{ .Values.resources.namespace }}
 type: Opaque
 stringData:
-  azurestorageaccountname: odoosa #TODO: Parametrized the Storage Account Name
-  azurestorageaccountkey: p03h3bIqESDwMC9A9Szl8hNPssExbLhT4pvMcxLmIlfhN3lrD2bwSHIOHeW5JvYQeR5asCtatTmM+AStO1hvwQ== #TODO: Parametrized the Storage Account Key
+  azurestorageaccountname: {{ quote .Values.resources.storageAccount.name }}
+  azurestorageaccountkey: {{ quote .Values.resources.storageAccount.key }}
 ---
 #################################
 #           Postgres            #
@@ -21,24 +21,23 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: {{ .Values.environment.postgres_pv_name }}
+  name: {{ .Values.environment.postgres.persistentVolume.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
   capacity:
-    storage: 2Gi #TODO: Parametrized the storage size for the Postgres PV
+    storage: {{ .Values.environment.postgres.persistentVolume.storageCapacity }}
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: azurefile-csi-premium
   csi:
     driver: file.csi.azure.com
-    volumeHandle: >- #TODO: Use parametrized values to compose the Volume Handle for the Postgres PV
-      kubernetes-test#odoosa#postgres-data-fs###odoo-dev 
+    volumeHandle: "{{- printf "%s#%s#%s###%s" .Values.resources.groupName .Values.resources.storageAccount.name .Values.environment.postgres.persistentVolume.nfsFileShareName .Values.resources.namespace -}}"
     volumeAttributes:
       protocol: nfs
-      storageAccount: odoosa #TODO: Use parametrized value of Storage Account Name
-      shareName: postgres-data-fs #TODO: Parametrized the File Share Name within the Storage Account for the Postgres PV
-      server: odoosa.file.core.windows.net #TODO: Parametrized the Server URL for the File Share within the Storage Account for the Postgres PV
+      storageAccount: {{ .Values.resources.storageAccount.name }}
+      shareName: {{ .Values.environment.postgres.persistentVolume.nfsFileShareName }}
+      server: {{ .Values.resources.storageAccount.name }}.file.core.windows.net
     nodeStageSecretRef:
       name: azure-file-credentials
       namespace: {{ .Values.resources.namespace }}
@@ -47,25 +46,25 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-data-pvc #TODO: Parametrized the name of the Postgres PVC
-  namespace: {{ .Values.resources.namespace }} #TODO: Use the parametrized value of the namespace
+  name: {{ .Values.environment.postgres.persistentVolumeClaim.name }}
+  namespace: {{ .Values.resources.namespace }}
 spec:
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 2Gi #TODO: Parametrized the storage size to claim for the Postgres PVC
-  volumeName: {{ .Values.environment.postgres_pv_name }}
+      storage: {{ .Values.environment.postgres.persistentVolume.storageCapacity }} # Use the same storage capacity from the PV
+  volumeName: {{ .Values.environment.postgres.persistentVolume.name }}
   storageClassName: azurefile-csi-premium
   volumeMode: Filesystem
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: postgres-deployment
+  name: {{ .Values.environment.postgres.deployment.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.environment.postgres.deployment.replicas }}
   selector:
     matchLabels:
       app: postgres
@@ -75,21 +74,21 @@ spec:
         app: postgres
     spec:
       containers:
-      - name: postgres
-        image: postgres:16
+      - name: {{ .Values.environment.postgres.deployment.container.name }}
+        image: {{ .Values.environment.postgres.deployment.container.imageName }}:{{ .Values.environment.postgres.deployment.container.imageTag }}
         resources:
           limits:
-            memory: "256Mi"
-            cpu: "100m"
+            memory: {{ .Values.environment.postgres.deployment.container.limits.memory }}
+            cpu: {{ .Values.environment.postgres.deployment.container.limits.cpu }}
         ports:
         - containerPort: 5432
         env:
           - name: POSTGRES_USER
-            value: usr_odoo
+            value: {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
           - name: POSTGRES_PASSWORD
-            value: Q37zfHgsswMnYQnKPZG4XQ5p
+            value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
           - name: PGDATA
-            value: /var/lib/postgresql/accounterprise-ce/
+            value: {{ .Values.environment.postgres.deployment.container.variables.postgresDataDirectory }}
         volumeMounts:
         - mountPath: "/var/lib/postgresql"
           name: postgres-data-v
@@ -97,12 +96,12 @@ spec:
       volumes:
       - name: postgres-data-v
         persistentVolumeClaim:
-          claimName: postgres-data-pvc
+          claimName: {{ .Values.environment.postgres.persistentVolumeClaim.name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres-service
+  name: {{ .Values.environment.postgres.service.name }}
   namespace: {{ .Values.resources.namespace }}
   labels:
     app: postgres
@@ -111,7 +110,7 @@ spec:
   selector:
     app: postgres
   ports:
-  - port: 15401
+  - port: {{ .Values.environment.postgres.service.port }}
     targetPort: 5432
 ---
 #################################
@@ -120,12 +119,12 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: odoo-config-cm
+  name: {{ .Values.environment.odoo.configMap.name }}
   namespace: {{ .Values.resources.namespace }}
 data:
   odoo.conf: |
     [options]
-    db_name = accounterprise-ce
+    db_name = {{ .Values.environment.odoo.configMap.databaseName }}
     db_sslmode = disable
     dbfilter = 
     list_db = False
@@ -155,24 +154,23 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: {{ .Values.environment.odoo_pv_name }}
+  name: {{ .Values.environment.odoo.persistentVolume.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
   capacity:
-    storage: 5Gi
+    storage: {{ .Values.environment.odoo.persistentVolume.storageCapacity }}
   accessModes:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: azurefile-csi-premium
   csi:
     driver: file.csi.azure.com
-    volumeHandle: >-
-      kubernetes-test#odoosa#odoo-data-fs###odoo-dev
+    volumeHandle: "{{- printf "%s#%s#%s###%s" .Values.resources.groupName .Values.resources.storageAccount.name .Values.environment.odoo.persistentVolume.nfsFileShareName .Values.resources.namespace -}}"
     volumeAttributes:
       protocol: nfs
-      storageAccount: odoosa
-      shareName: odoo-data-fs
-      server: odoosa.file.core.windows.net
+      storageAccount: {{ .Values.resources.storageAccount.name }}
+      shareName: {{ .Values.environment.odoo.persistentVolume.nfsFileShareName }}
+      server: {{ .Values.resources.storageAccount.name }}.file.core.windows.net
     nodeStageSecretRef:
       name: azure-file-credentials
       namespace: {{ .Values.resources.namespace }}
@@ -181,24 +179,25 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: odoo-data-pvc
+  name: {{ .Values.environment.odoo.persistentVolumeClaim.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
   accessModes:
     - ReadWriteMany
   resources:
     requests:
-      storage: 5Gi
-  volumeName: {{ .Values.environment.odoo_pv_name }}
+      storage: {{ .Values.environment.odoo.persistentVolume.storageCapacity }}
+  volumeName: {{ .Values.environment.odoo.persistentVolume.name }}
   storageClassName: azurefile-csi-premium
   volumeMode: Filesystem
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: odoo-deployment
+  name: {{ .Values.environment.odoo.deployment.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
+  replicas: {{ .Values.environment.odoo.deployment.replicas }}
   selector:
     matchLabels:
       app: odoo
@@ -208,23 +207,23 @@ spec:
         app: odoo
     spec:
       containers:
-      - name: odoo
-        image: odoo:16.0
+      - name: {{ .Values.environment.odoo.deployment.container.name }}
+        image: {{ .Values.environment.odoo.deployment.container.imageName }}:{{ .Values.environment.odoo.deployment.container.imageTag }}
         resources:
           limits:
-            memory: "512Mi"
-            cpu: "200m"
+            memory: {{ .Values.environment.odoo.deployment.container.limits.memory }}
+            cpu: {{ .Values.environment.odoo.deployment.container.limits.cpu }}
         ports:
         - containerPort: 8069
         env:
           - name: HOST
-            value: postgres-service
+            value: {{ .Values.environment.postgres.service.name }}
           - name: PORT
-            value: "15401"
+            value: {{ quote .Values.environment.postgres.service.port }}
           - name: USER
-            value: usr_odoo
+            value: {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
           - name: PASSWORD
-            value: Q37zfHgsswMnYQnKPZG4XQ5p
+            value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
         volumeMounts:
           - mountPath: "/var/lib/odoo"
             name: odoo-data-v
@@ -235,20 +234,62 @@ spec:
       volumes:
         - name: odoo-data-v
           persistentVolumeClaim:
-            claimName: odoo-data-pvc
+            claimName: {{ .Values.environment.odoo.persistentVolumeClaim.name }}
         - name: odoo-config-v
           configMap:
-            name: odoo-config-cm
+            name: {{ .Values.environment.odoo.configMap.name }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: odoo-service
+  name: {{ .Values.environment.odoo.service.name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: odoo
   ports:
-  - port: 19801
+  - name: http-port
+    port: {{ .Values.environment.odoo.service.port }}
     targetPort: 8069
+  - name: gevent-port
+    port: {{ .Values.environment.odoo.service.geventPort }}
+    targetPort: 8072
+---
+#################################
+#       Ingress resource       #
+#################################
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.environment.odoo.ingress.name }}
+  namespace: {{ .Values.resources.namespace }}
+  labels:
+    app: odoo
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
+    release: "{{ .Release.Name }}"
+    heritage: "{{ .Release.Service }}"
+spec:
+  ingressClassName: {{ .Values.environment.odoo.ingress.className }}
+  tls:
+    - hosts:
+        - {{ .Values.environment.odoo.ingress.host }}
+      secretName: {{ .Values.environment.odoo.ingress.tls.secretName }}
+  rules:
+    - host: {{ .Values.environment.odoo.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service: 
+                name: {{ .Values.environment.odoo.service.name }}
+                port:
+                  number: {{ .Values.environment.odoo.service.port }}
+          - path: /websocket
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Values.environment.odoo.service.name }}
+                port:
+                  number: {{ .Values.environment.odoo.service.geventPort }}
