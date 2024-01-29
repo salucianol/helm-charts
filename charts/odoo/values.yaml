@@ -3,7 +3,7 @@ resources:
   groupName: "kubernetes-test"
   storageAccount:
     name: "odoosa"
-    key: "p03h3bIqESDwMC9A9Szl8hNPssExbLhT4pvMcxLmIlfhN3lrD2bwSHIOHeW5JvYQeR5asCtatTmM"
+    key: "<KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT>"
 environment:
   postgres:
     persistentVolume:
