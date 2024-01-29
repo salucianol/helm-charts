@@ -49,10 +49,6 @@ environment:
         limits:
           memory: "512Mi"
           cpu: "200m"
-        variables:
-          postgresUser: "usr_odoo"
-          postgresPassword: "Q37zfHgsswMnYQnKPZG4XQ5p"
-          postgresDataDirectory: "/var/lib/postgresql/accounterprise-ce/"
     service:
       name: "accounterprise-ce-odoo-service"
       port: "19801"
@@ -62,4 +58,4 @@ environment:
       className: "webapprouting.kubernetes.azure.com"
       host: "odoo-dev-ce-az.accounterprise.com"
       tls:
-        secretName: "keyvault-accounterprise-ce"
+        secretName: "tls-certificate"
