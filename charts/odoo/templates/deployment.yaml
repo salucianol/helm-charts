@@ -21,7 +21,7 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: postgres-data-pv #TODO: Parametrized the Persistent Volume Name for the Postgres PV
+  name: {{ .Values.environment.postgres_pv_name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
   capacity:
@@ -55,7 +55,7 @@ spec:
   resources:
     requests:
       storage: 2Gi #TODO: Parametrized the storage size to claim for the Postgres PVC
-  volumeName: postgres-data-pv #TODO: Use the parametrized value of the Persistent Volume Name for the Postgres PV
+  volumeName: {{ .Values.environment.postgres_pv_name }}
   storageClassName: azurefile-csi-premium
   volumeMode: Filesystem
 ---
@@ -155,7 +155,7 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: odoo-data-pv
+  name: {{ .Values.environment.odoo_pv_name }}
   namespace: {{ .Values.resources.namespace }}
 spec:
   capacity:
@@ -189,7 +189,7 @@ spec:
   resources:
     requests:
       storage: 5Gi
-  volumeName: odoo-data-pv
+  volumeName: {{ .Values.environment.odoo_pv_name }}
   storageClassName: azurefile-csi-premium
   volumeMode: Filesystem
 ---

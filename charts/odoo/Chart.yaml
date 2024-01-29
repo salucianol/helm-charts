@@ -1,6 +1,6 @@
 apiVersion: v2
-name: Odoo Community Edition
-version: 0.1.0
+name: odoo
+version: 0.1.3
 kubeVersion: 1.28.x
 description: Chart for deploying Odoo in AKS using File Shares (NFS) for persisting data.
 keywords:
@@ -9,6 +9,6 @@ keywords:
   - Azure Files
   - Postgres
 maintainers:
-  name: Samuel A. Luciano L.
-  email: sa.lassis@gmail.com
+  - name: "Samuel A. Luciano L."
+    email: "sa.lassis@gmail.com"
 appVersion: "16.0"

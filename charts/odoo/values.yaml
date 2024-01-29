@@ -1,0 +1,5 @@
+resources:
+  namespace: "helm-dev"
+environment:
+  postgres_pv_name: "accounterprise-ce-postgres-data-pv"
+  odoo_pv_name: "accounterprise-ce-odoo-data-pv"
