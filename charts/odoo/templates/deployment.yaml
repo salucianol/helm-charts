@@ -134,7 +134,7 @@ data:
     list_db = False
     db_template = template1
     addons_path = /mnt/extra-addons
-    data_dir = {{- printf "/var/lib/odoo/%s" .Values.environment.prefix | trim -}}
+    data_dir = /var/lib/odoo/{{ .Values.environment.prefix | trim }}
     
     # Connection options
     workers = 3
@@ -158,7 +158,7 @@ kind: PersistentVolume
 metadata:
   annotations:
     pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.odoo.persistentVolume.name }}"
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.persistentVolume.name }}"
   namespace: {{ .Values.resources.namespace }}
 spec:
   capacity:
@@ -183,7 +183,7 @@ spec:
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.odoo.persistentVolumeClaim.name -}}"
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.persistentVolumeClaim.name }}"
   namespace: {{ .Values.resources.namespace }}
 spec:
   accessModes:
@@ -191,7 +191,7 @@ spec:
   resources:
     requests:
       storage: {{ .Values.environment.odoo.persistentVolume.storageCapacity }}
-  volumeName: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.odoo.persistentVolume.name -}}"
+  volumeName: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.persistentVolume.name }}"
   storageClassName: azurefile-csi-premium
   volumeMode: Filesystem
 ---
@@ -230,6 +230,8 @@ spec:
             value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
           - name: DATABASE_NAME
             value: {{ .Values.environment.prefix }}
+          - name: ODOO_INITIAL_MODULES
+            value: {{ .Values.environment.odoo.modulesToInstall }}
         volumeMounts:
           - mountPath: "/var/lib/odoo"
             name: odoo-data-v

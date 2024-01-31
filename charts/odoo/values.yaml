@@ -33,6 +33,7 @@ environment:
       name: "postgres-service"
       port: "15401"
   odoo:
+    modulesToInstall: "base,billing_do,professional_templates"
     configMap:
       name: "odoo-config-cm"
     persistentVolume:
