@@ -5,15 +5,16 @@ resources:
     name: "odoosa"
     key: "<KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT>"
 environment:
+  prefix: "accounterprise-ce"
   postgres:
     persistentVolume:
-      name: "accounterprise-ce-postgres-data-pv"
+      name: "postgres-data-pv"
       storageCapacity: "2Gi"
       nfsFileShareName: "postgres-data-fs"
     persistentVolumeClaim:
-      name: "accounterprise-ce-postgres-data-pvc"
+      name: "postgres-data-pvc"
     deployment:
-      name: "accounterprise-ce-postgres-deployment"
+      name: "postgres-deployment"
       replicas: "1"
       container:
         name: "postgres"
@@ -25,22 +26,21 @@ environment:
         variables:
           postgresUser: "usr_odoo"
           postgresPassword: "Q37zfHgsswMnYQnKPZG4XQ5p"
-          postgresDataDirectory: "/var/lib/postgresql/accounterprise-ce/"
+          postgresDataDirectory: "/var/lib/postgresql"
     service:
-      name: "accounterprise-ce-postgres-service"
+      name: "postgres-service"
       port: "15401"
   odoo:
     configMap:
-      name: "accounterprise-ce-odoo-config-cm"
-      databaseName: "accounterprise-ce"
+      name: "odoo-config-cm"
     persistentVolume:
-      name: "accounterprise-ce-odoo-data-pv"
+      name: "odoo-data-pv"
       storageCapacity: "5Gi"
       nfsFileShareName: "odoo-data-fs"
     persistentVolumeClaim:
-      name: "accounterprise-ce-odoo-data-pvc"
+      name: "odoo-data-pvc"
     deployment:
-      name: "accounterprise-ce-odoo-deployment"
+      name: "odoo-deployment"
       replicas: "1"
       container:
         name: "odoo"
@@ -50,11 +50,11 @@ environment:
           memory: "512Mi"
           cpu: "200m"
     service:
-      name: "accounterprise-ce-odoo-service"
+      name: "odoo-service"
       port: "19801"
       geventPort: "20801"
     ingress:
-      name: "accounterprise-ce-odoo-ingress"
+      name: "odoo-ingress"
       className: "webapprouting.kubernetes.azure.com"
       host: "odoo-dev-ce-az.accounterprise.com"
       tls:
