@@ -89,6 +89,10 @@ spec:
             value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
           - name: PGDATA
             value: {{ .Values.environment.postgres.deployment.container.variables.postgresDataDirectory }}/{{ .Values.environment.prefix }}/
+        {{{{- if .Values.environment.odoo.deployment.container.isPrivateRepository -}}
+        imagePullSecrets:
+          - name: {{ .Values.environment.postgres.deployment.container.imagePullSecrets }}
+        {{- end -}}}}
         volumeMounts:
         - mountPath: "/var/lib/postgresql"
           name: postgres-data-v
@@ -233,6 +237,10 @@ spec:
           - mountPath: "/etc/odoo/"
             name: odoo-config-v
             readOnly: false
+      {{{{- if .Values.environment.odoo.deployment.container.isPrivateRepository -}}
+      imagePullSecrets:
+        - name: {{ .Values.environment.odoo.deployment.container.imagePullSecrets }}
+      {{- end -}}}}
       volumes:
         - name: odoo-data-v
           persistentVolumeClaim:
