@@ -20,7 +20,11 @@ environment:
         name: "postgres"
         imageName: "postgres"
         imageTag: "16"
-        imagePullSecrets: "private-repository-secret"
+        privateRepository: 
+          secretName: "postgres-private-repository-secret"
+          dockerUserName: ""
+          dockerUserPassword: ""
+          dockerUserEmail: ""
         isPrivateRepository: "false"
         limits:
           memory: "256Mi"
@@ -49,7 +53,11 @@ environment:
         name: "odoo"
         imageName: "odoo"
         imageTag: "16.0"
-        imagePullSecrets: "private-repository-secret"
+        privateRepository: 
+          secretName: "odoo-private-repository-secret"
+          dockerUserName: ""
+          dockerUserPassword: ""
+          dockerUserEmail: ""
         isPrivateRepository: "false"
         limits:
           memory: "512Mi"

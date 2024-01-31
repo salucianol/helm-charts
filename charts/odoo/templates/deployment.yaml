@@ -17,6 +17,17 @@ stringData:
 #           Postgres            #
 #################################
 apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
+  namespace: {{ .Values.resources.namespace }}
+stringData:
+  username: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserName }}
+  password: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword }}
+  email: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserEmail }}
+type: kubernetes.io/dockerconfigjson
+---
+apiVersion: v1
 kind: PersistentVolume
 metadata:
   annotations:
@@ -95,7 +106,7 @@ spec:
           readOnly: false
       {{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
-        - name: {{ .Values.environment.postgres.deployment.container.imagePullSecrets }}
+        - name: {{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}
       {{ end }}
       volumes:
       - name: postgres-data-v
@@ -120,6 +131,17 @@ spec:
 #################################
 #             Odoo              #
 #################################
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
+  namespace: {{ .Values.resources.namespace }}
+stringData:
+  username: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserName }}
+  password: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword }}
+  email: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserEmail }}
+type: kubernetes.io/dockerconfigjson
+---
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -241,7 +263,7 @@ spec:
             readOnly: false
       {{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
-        - name: {{ .Values.environment.odoo.deployment.container.imagePullSecrets }}
+        - name: {{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}
       {{ end }}
       volumes:
         - name: odoo-data-v
