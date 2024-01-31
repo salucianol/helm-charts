@@ -3,7 +3,7 @@ resources:
   groupName: "kubernetes-test"
   storageAccount:
     name: "odoosa"
-    key: "<KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT>"
+    key: "KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT"
 environment:
   prefix: "accounterprise-ce"
   postgres:
@@ -20,8 +20,8 @@ environment:
         name: "postgres"
         imageName: "postgres"
         imageTag: "16"
-        imagePullSecrets: "private-repository-sercret"
-        isPrivateRepository: false
+        imagePullSecrets: "private-repository-secret"
+        isPrivateRepository: "false"
         limits:
           memory: "256Mi"
           cpu: "100m"
@@ -48,8 +48,8 @@ environment:
         name: "odoo"
         imageName: "odoo"
         imageTag: "16.0"
-        imagePullSecrets: "private-repository-sercret"
-        isPrivateRepository: false
+        imagePullSecrets: "private-repository-secret"
+        isPrivateRepository: "false"
         limits:
           memory: "512Mi"
           cpu: "200m"
