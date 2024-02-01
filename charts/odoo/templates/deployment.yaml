@@ -16,17 +16,29 @@ stringData:
 #################################
 #           Postgres            #
 #################################
+{{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
 apiVersion: v1
 kind: Secret
 metadata:
   name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
   namespace: {{ .Values.resources.namespace }}
 stringData:
-  username: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserName }}
-  password: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword }}
-  email: {{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserEmail }}
+  .dockerconfigjson: >-
+    {
+      "auths":
+      {
+        "accounterprise.azurecr.io":
+          {
+            "username": "{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserName }}",
+            "password":"{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword }}",
+            "email":"{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserEmail }}",
+            "auth": "{{- printf "%s:%s" .Values.environment.postgres.deployment.container.privateRepository.dockerUserName .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword | b64enc }}"
+        }
+      }
+    }
 type: kubernetes.io/dockerconfigjson
 ---
+{{ end }}
 apiVersion: v1
 kind: PersistentVolume
 metadata:
@@ -99,14 +111,14 @@ spec:
           - name: POSTGRES_PASSWORD
             value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
           - name: PGDATA
-            value: "{{- printf "%s/%s/" .Values.environment.postgres.deployment.container.variables.postgresDataDirectory .Values.environment.prefix -}}/"
+            value: "{{- printf "%s/%s/" .Values.environment.postgres.deployment.container.variables.postgresDataDirectory .Values.environment.prefix -}}"
         volumeMounts:
         - mountPath: "/var/lib/postgresql"
           name: postgres-data-v
           readOnly: false
       {{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
-        - name: {{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}
+        - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
       {{ end }}
       volumes:
       - name: postgres-data-v
@@ -131,31 +143,46 @@ spec:
 #################################
 #             Odoo              #
 #################################
+{{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
 apiVersion: v1
 kind: Secret
 metadata:
   name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
   namespace: {{ .Values.resources.namespace }}
 stringData:
-  username: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserName }}
-  password: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword }}
-  email: {{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserEmail }}
+  .dockerconfigjson: >-
+    {
+      "auths":
+      {
+        "accounterprise.azurecr.io":
+          {
+            "username": "{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserName }}",
+            "password":"{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword }}",
+            "email":"{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserEmail }}",
+            "auth": "{{- printf "%s:%s" .Values.environment.odoo.deployment.container.privateRepository.dockerUserName .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword | b64enc }}"
+        }
+      }
+    }
 type: kubernetes.io/dockerconfigjson
 ---
+{{ end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.odoo.configMap.name -}}"
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.configMap.name }}"
   namespace: {{ .Values.resources.namespace }}
 data:
   odoo.conf: |
     [options]
+    db_host = {{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}
+    db_port = {{ .Values.environment.postgres.service.port }}
     db_name = {{ .Values.environment.prefix }}
+    db_user = {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
+    db_password = {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
     db_sslmode = disable
     dbfilter = 
     list_db = False
     db_template = template1
-    addons_path = /mnt/extra-addons
     data_dir = /var/lib/odoo/{{ .Values.environment.prefix | trim }}
     
     # Connection options
@@ -263,7 +290,7 @@ spec:
             readOnly: false
       {{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
-        - name: {{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}
+        - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
       {{ end }}
       volumes:
         - name: odoo-data-v
@@ -317,13 +344,13 @@ spec:
             pathType: Prefix
             backend:
               service: 
-                name: {{ .Values.environment.odoo.service.name }}
+                name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.service.name }}"
                 port:
                   number: {{ .Values.environment.odoo.service.port }}
           - path: /websocket
             pathType: Prefix
             backend:
               service:
-                name: {{ .Values.environment.odoo.service.name }}
+                name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.service.name }}"
                 port:
                   number: {{ .Values.environment.odoo.service.geventPort }}
