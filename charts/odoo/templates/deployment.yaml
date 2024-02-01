@@ -99,6 +99,7 @@ spec:
       containers:
       - name: {{ .Values.environment.postgres.deployment.container.name }}
         image: "{{ .Values.environment.postgres.deployment.container.imageName }}:{{ .Values.environment.postgres.deployment.container.imageTag }}"
+        imagePullPolicy: Always
         resources:
           limits:
             memory: {{ .Values.environment.postgres.deployment.container.limits.memory }}
@@ -262,6 +263,7 @@ spec:
       containers:
       - name: {{ .Values.environment.odoo.deployment.container.name }}
         image: "{{ .Values.environment.odoo.deployment.container.imageName }}:{{ .Values.environment.odoo.deployment.container.imageTag }}"
+        imagePullPolicy: Always
         resources:
           limits:
             memory: {{ .Values.environment.odoo.deployment.container.limits.memory }}
