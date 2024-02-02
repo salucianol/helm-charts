@@ -1,0 +1,5 @@
+resources:
+  namespace: "helm-dev"
+  storageAccount:
+    name: "odoosa"
+    key: "KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT"

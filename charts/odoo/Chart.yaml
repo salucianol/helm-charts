@@ -1,6 +1,6 @@
 apiVersion: v2
 name: odoo
-version: 0.1.7
+version: 0.1.10
 kubeVersion: 1.28.x
 description: Chart for deploying Odoo in AKS using File Shares (NFS) for persisting data.
 keywords:

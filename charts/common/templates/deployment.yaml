@@ -1,0 +1,33 @@
+{{/*
+  Namespace used to group all the resources for all the environments
+    which will be created using this manifest.
+    - As this is a Shared resources between environments, we need to check
+      if exists, in which case we don't need to create it again.
+*/}}
+{{ $namespace := (lookup "v1" "Namespace" ""  .Values.resources.namespace) }}
+{{- if not $namespace -}}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ .Values.resources.namespace }}
+---
+{{- end -}}
+{{/*
+  Secret containing the credentials to authenticate with the Storage Account
+    for accessing the File Shares used by the Persistent Volumes.
+    - As this is a Shared resources between environments, we need to check
+      if exists, in which case we don't need to create it again.
+*/}}
+{{ $azureFilesSecret := (lookup "v1" "Secret" .Values.resources.namespace  "azure-file-credentials") }}
+{{- if not $azureFilesSecret -}}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: azure-file-credentials
+  namespace: {{ .Values.resources.namespace }}
+type: Opaque
+stringData:
+  azurestorageaccountname: {{ quote .Values.resources.storageAccount.name }}
+  azurestorageaccountkey: {{ quote .Values.resources.storageAccount.key }}
+---
+{{- end -}}

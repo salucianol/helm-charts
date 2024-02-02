@@ -1,0 +1,7 @@
+The common resources has been created. This Chart specifically created two resources:
+
+    1.  A namespace with the name specified in resources.namespace from values.yaml
+    2.  A Secret containing the credentials to connect Storage Account using 
+        values specified in resources.storageAccount from values.yaml
+
+Enjoy the journey!
