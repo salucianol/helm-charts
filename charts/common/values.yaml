@@ -3,3 +3,6 @@ resources:
   storageAccount:
     name: "odoosa"
     key: "KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT"
+  ingress:
+      tls:
+        secretName: "tls-certificate"
