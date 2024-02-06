@@ -75,14 +75,14 @@ spec:
   replicas: {{ .Values.environment.postgres.deployment.replicas }}
   selector:
     matchLabels:
-      app: postgres
+      app: {{ .Values.environment.prefix }}-postgres
   template:
     metadata:
       labels:
-        app: postgres
+        app: {{ .Values.environment.prefix }}-postgres
     spec:
       containers:
-      - name: {{ .Values.environment.postgres.deployment.container.name }}
+      - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.name }}"
         image: "{{ .Values.environment.postgres.deployment.container.imageName }}:{{ .Values.environment.postgres.deployment.container.imageTag }}"
         imagePullPolicy: Always
         resources:
@@ -100,28 +100,28 @@ spec:
             value: "{{- printf "%s/%s/" .Values.environment.postgres.deployment.container.variables.postgresDataDirectory .Values.environment.prefix -}}"
         volumeMounts:
         - mountPath: "/var/lib/postgresql"
-          name: postgres-data-v
+          name: {{ .Values.environment.prefix }}-postgres-data-v
           readOnly: false
       {{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
         - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
       {{ end }}
       volumes:
-      - name: postgres-data-v
+      - name: {{ .Values.environment.prefix }}-postgres-data-v
         persistentVolumeClaim:
           claimName: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.postgres.persistentVolumeClaim.name -}}"
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.postgres.service.name -}}"
+  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}"
   namespace: {{ .Values.resources.namespace }}
   labels:
-    app: postgres
+    app: {{ .Values.environment.prefix }}-postgres
 spec:
   type: ClusterIP
   selector:
-    app: postgres
+    app: {{ .Values.environment.prefix }}-postgres
   ports:
   - port: {{ .Values.environment.postgres.service.port }}
     targetPort: 5432
@@ -239,14 +239,14 @@ spec:
   replicas: {{ .Values.environment.odoo.deployment.replicas }}
   selector:
     matchLabels:
-      app: odoo
+      app: {{ .Values.environment.prefix }}-odoo
   template:
     metadata:
       labels:
-        app: odoo
+        app: {{ .Values.environment.prefix }}-odoo
     spec:
       containers:
-      - name: {{ .Values.environment.odoo.deployment.container.name }}
+      - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.name }}"
         image: "{{ .Values.environment.odoo.deployment.container.imageName }}:{{ .Values.environment.odoo.deployment.container.imageTag }}"
         imagePullPolicy: Always
         resources:
@@ -270,20 +270,20 @@ spec:
             value: {{ .Values.environment.odoo.modulesToInstall }}
         volumeMounts:
           - mountPath: "/var/lib/odoo"
-            name: odoo-data-v
+            name: {{ .Values.environment.prefix }}-odoo-data-v
             readOnly: false
           - mountPath: "/etc/odoo/"
-            name: odoo-config-v
+            name: {{ .Values.environment.prefix }}-odoo-config-v
             readOnly: false
       {{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
       imagePullSecrets:
         - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
       {{ end }}
       volumes:
-        - name: odoo-data-v
+        - name: {{ .Values.environment.prefix }}-odoo-data-v
           persistentVolumeClaim:
             claimName: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.persistentVolumeClaim.name }}"
-        - name: odoo-config-v
+        - name: {{ .Values.environment.prefix }}-odoo-config-v
           configMap:
             name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.configMap.name }}"
 ---
@@ -295,7 +295,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: odoo
+    app: {{ .Values.environment.prefix }}-odoo
   ports:
   - name: http-port
     port: {{ .Values.environment.odoo.service.port }}
@@ -313,7 +313,7 @@ metadata:
   name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.ingress.name }}"
   namespace: {{ .Values.resources.namespace }}
   labels:
-    app: odoo
+    app: {{ .Values.environment.prefix }}-odoo
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
