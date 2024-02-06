@@ -5,4 +5,5 @@ resources:
     key: "KEY/TOKEN/PASSWORD TO ACCESS AZURE STORAGE ACCOUNT"
   ingress:
       tls:
-        secretName: "tls-certificate"
+        crt: ""
+        key: ""
