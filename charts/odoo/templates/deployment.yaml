@@ -67,11 +67,12 @@ spec:
   volumeMode: Filesystem
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.name }}"
   namespace: {{ .Values.resources.namespace }}
 spec:
+  serviceName: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}"
   replicas: {{ .Values.environment.postgres.deployment.replicas }}
   selector:
     matchLabels:
@@ -120,6 +121,8 @@ metadata:
     app: {{ .Values.environment.prefix }}-postgres
 spec:
   type: ClusterIP
+  clusterIP: None
+  publishNotReadyAddresses: true
   selector:
     app: {{ .Values.environment.prefix }}-postgres
   ports:
