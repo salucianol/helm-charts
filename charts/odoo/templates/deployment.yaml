@@ -1,160 +1,6 @@
 #################################
-#           Postgres            #
-#################################
-{{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
-apiVersion: v1
-kind: Secret
-metadata:
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
-  namespace: {{ .Values.resources.namespace }}
-stringData:
-  .dockerconfigjson: >-
-    {
-      "auths":
-      {
-        "accounterprise.azurecr.io":
-          {
-            "username": "{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserName }}",
-            "password":"{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword }}",
-            "email":"{{ .Values.environment.postgres.deployment.container.privateRepository.dockerUserEmail }}",
-            "auth": "{{- printf "%s:%s" .Values.environment.postgres.deployment.container.privateRepository.dockerUserName .Values.environment.postgres.deployment.container.privateRepository.dockerUserPassword | b64enc }}"
-        }
-      }
-    }
-type: kubernetes.io/dockerconfigjson
----
-{{ end }}
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  annotations:
-    pv.kubernetes.io/provisioned-by: file.csi.azure.com
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.persistentVolume.name }}"
-  namespace: {{ .Values.resources.namespace }}
-spec:
-  capacity:
-    storage: {{ .Values.environment.postgres.persistentVolume.storageCapacity }}
-  accessModes:
-    - ReadWriteMany
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: azurefile-csi-premium
-  csi:
-    driver: file.csi.azure.com
-    volumeHandle: "{{- printf "%s#%s#%s###%s" .Values.resources.groupName .Values.resources.storageAccount.name .Values.environment.postgres.persistentVolume.nfsFileShareName .Values.resources.namespace -}}"
-    volumeAttributes:
-      protocol: nfs
-      storageAccount: {{ .Values.resources.storageAccount.name }}
-      shareName: {{ .Values.environment.postgres.persistentVolume.nfsFileShareName }}
-      server: {{ .Values.resources.storageAccount.name }}.file.core.windows.net
-    nodeStageSecretRef:
-      name: azure-file-credentials
-      namespace: {{ .Values.resources.namespace }}
-  volumeMode: Filesystem
----
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.persistentVolumeClaim.name }}"
-  namespace: {{ .Values.resources.namespace }}
-spec:
-  accessModes:
-    - ReadWriteMany
-  resources:
-    requests:
-      storage: {{ .Values.environment.postgres.persistentVolume.storageCapacity }}
-  volumeName: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.persistentVolume.name }}"
-  storageClassName: azurefile-csi-premium
-  volumeMode: Filesystem
----
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.name }}"
-  namespace: {{ .Values.resources.namespace }}
-spec:
-  serviceName: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}"
-  replicas: {{ .Values.environment.postgres.deployment.replicas }}
-  selector:
-    matchLabels:
-      app: {{ .Values.environment.prefix }}-postgres
-  template:
-    metadata:
-      labels:
-        app: {{ .Values.environment.prefix }}-postgres
-    spec:
-      containers:
-      - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.name }}"
-        image: "{{ .Values.environment.postgres.deployment.container.imageName }}:{{ .Values.environment.postgres.deployment.container.imageTag }}"
-        imagePullPolicy: Always
-        resources:
-          limits:
-            memory: {{ .Values.environment.postgres.deployment.container.limits.memory }}
-            cpu: {{ .Values.environment.postgres.deployment.container.limits.cpu }}
-        ports:
-        - containerPort: 5432
-        env:
-          - name: POSTGRES_USER
-            value: {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
-          - name: POSTGRES_PASSWORD
-            value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
-          - name: PGDATA
-            value: "{{- printf "%s/%s/" .Values.environment.postgres.deployment.container.variables.postgresDataDirectory .Values.environment.prefix -}}"
-        volumeMounts:
-        - mountPath: "/var/lib/postgresql"
-          name: {{ .Values.environment.prefix }}-postgres-data-v
-          readOnly: false
-      {{ if eq .Values.environment.postgres.deployment.container.isPrivateRepository "true" }}
-      imagePullSecrets:
-        - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.privateRepository.secretName }}"
-      {{ end }}
-      volumes:
-      - name: {{ .Values.environment.prefix }}-postgres-data-v
-        persistentVolumeClaim:
-          claimName: "{{- printf "%s-%s" .Values.environment.prefix .Values.environment.postgres.persistentVolumeClaim.name -}}"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}"
-  namespace: {{ .Values.resources.namespace }}
-  labels:
-    app: {{ .Values.environment.prefix }}-postgres
-spec:
-  type: ClusterIP
-  clusterIP: None
-  publishNotReadyAddresses: true
-  selector:
-    app: {{ .Values.environment.prefix }}-postgres
-  ports:
-  - port: {{ .Values.environment.postgres.service.port }}
-    targetPort: 5432
----
-#################################
 #             Odoo              #
 #################################
-{{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
-apiVersion: v1
-kind: Secret
-metadata:
-  name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
-  namespace: {{ .Values.resources.namespace }}
-stringData:
-  .dockerconfigjson: >-
-    {
-      "auths":
-      {
-        "accounterprise.azurecr.io":
-          {
-            "username": "{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserName }}",
-            "password":"{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword }}",
-            "email":"{{ .Values.environment.odoo.deployment.container.privateRepository.dockerUserEmail }}",
-            "auth": "{{- printf "%s:%s" .Values.environment.odoo.deployment.container.privateRepository.dockerUserName .Values.environment.odoo.deployment.container.privateRepository.dockerUserPassword | b64enc }}"
-        }
-      }
-    }
-type: kubernetes.io/dockerconfigjson
----
-{{ end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -163,26 +9,26 @@ metadata:
 data:
   odoo.conf: |
     [options]
-    db_host = {{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}
-    db_port = {{ .Values.environment.postgres.service.port }}
-    db_name = {{ .Values.environment.prefix }}
-    db_user = {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
-    db_password = {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
-    db_sslmode = disable
+    db_host = {{ .Values.environment.postgres.hostname }}
+    db_port = {{ .Values.environment.postgres.port }}
+    db_name = {{ .Values.environment.postgres.databaseName }}
+    db_user = {{ .Values.environment.postgres.username }}
+    db_password = {{ .Values.environment.postgres.password }}
+    db_sslmode = prefer
     dbfilter = 
     list_db = False
     db_template = template1
     data_dir = /var/lib/odoo/{{ .Values.environment.prefix | trim }}
     
     # Connection options
-    workers = 3
-    max_cron_threads = 2
-    limit_memory_hard = 2684354560
-    limit_memory_soft = 2147483648
+    workers = 2
+    max_cron_threads = 1
+    limit_memory_hard = 1677721600
+    limit_memory_soft = 629145600
     limit_request = 8192
     limit_time_cpu = 240
-    limit_time_real = 240
-    limit_time_real_cron = -1
+    limit_time_real = 352
+    limit_time_real_cron = 2400
     gevent_port = 8072
 
     # Demo Data options
@@ -253,6 +99,9 @@ spec:
         image: "{{ .Values.environment.odoo.deployment.container.imageName }}:{{ .Values.environment.odoo.deployment.container.imageTag }}"
         imagePullPolicy: Always
         resources:
+          requests:
+            memory: {{ .Values.environment.odoo.deployment.container.requests.memory }}
+            cpu: {{ .Values.environment.odoo.deployment.container.requests.cpu }}
           limits:
             memory: {{ .Values.environment.odoo.deployment.container.limits.memory }}
             cpu: {{ .Values.environment.odoo.deployment.container.limits.cpu }}
@@ -260,13 +109,13 @@ spec:
         - containerPort: 8069
         env:
           - name: HOST
-            value: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.service.name }}"
+            value: "{{ .Values.environment.postgres.hostname }}"
           - name: PORT
-            value: {{ quote .Values.environment.postgres.service.port }}
+            value: {{ quote .Values.environment.postgres.port }}
           - name: USER
-            value: {{ .Values.environment.postgres.deployment.container.variables.postgresUser }}
+            value: {{ .Values.environment.postgres.username }}
           - name: PASSWORD
-            value: {{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}
+            value: {{ .Values.environment.postgres.password }}
           - name: DATABASE_NAME
             value: {{ .Values.environment.prefix }}
           - name: ODOO_INITIAL_MODULES
@@ -278,10 +127,6 @@ spec:
           - mountPath: "/etc/odoo/"
             name: {{ .Values.environment.prefix }}-odoo-config-v
             readOnly: false
-      {{ if eq .Values.environment.odoo.deployment.container.isPrivateRepository "true" }}
-      imagePullSecrets:
-        - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.privateRepository.secretName }}"
-      {{ end }}
       volumes:
         - name: {{ .Values.environment.prefix }}-odoo-data-v
           persistentVolumeClaim:
