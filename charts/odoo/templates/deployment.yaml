@@ -120,6 +120,14 @@ spec:
             value: {{ .Values.environment.prefix }}
           - name: ODOO_INITIAL_MODULES
             value: {{ .Values.environment.odoo.modulesToInstall }}
+          - name: ODOO_EDITION
+            value: "{{ .Values.environment.odoo.edition }}"
+          - name: ODOO_ENVIRONMENT
+            value: "{{ .Values.environment.odoo.appEnvironment }}"
+          - name: MAX_RETRIES
+            value: "{{ .Values.environment.odoo.maxRetries }}"
+          - name: SLEEP_TIME
+            value: "{{ .Values.environment.odoo.sleepTime }}"
         volumeMounts:
           - mountPath: "/var/lib/odoo"
             name: {{ .Values.environment.prefix }}-odoo-data-v
@@ -165,6 +173,11 @@ metadata:
     chart: "{{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}"
     release: "{{ .Release.Name }}"
     heritage: "{{ .Release.Service }}"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{ .Values.environment.odoo.ingress.proxyConnectTimeout }}"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "{{ .Values.environment.odoo.ingress.proxyReadTimeout }}"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "{{ .Values.environment.odoo.ingress.proxySendTimeout }}"
+    nginx.org/client-max-body-size: "{{ .Values.environment.odoo.ingress.clientMaxBodySize }}"
 spec:
   ingressClassName: {{ .Values.environment.odoo.ingress.className }}
   tls:
@@ -182,6 +195,15 @@ spec:
                 name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.service.name }}"
                 port:
                   number: {{ .Values.environment.odoo.service.port }}
+          {{ if eq .Values.environment.odoo.version "13.0" }}
+          - path: /longpolling
+            pathType: Prefix
+            backend:
+              service:
+                name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.service.name }}"
+                port:
+                  number: {{ .Values.environment.odoo.service.geventPort }}
+          {{ else }}
           - path: /websocket
             pathType: Prefix
             backend:
@@ -189,3 +211,4 @@ spec:
                 name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.service.name }}"
                 port:
                   number: {{ .Values.environment.odoo.service.geventPort }}
+          {{ end }}

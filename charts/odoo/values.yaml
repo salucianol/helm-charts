@@ -37,6 +37,10 @@ environment:
       name: "postgres-service"
       port: "15401"
   odoo:
+    edition: "ce"
+    appEnvironment: "prod"
+    maxRetries: 3
+    sleepTime: 10
     modulesToInstall: "base,billing_do,professional_templates"
     configMap:
       name: "odoo-config-cm"
@@ -59,9 +63,12 @@ environment:
           dockerUserPassword: ""
           dockerUserEmail: ""
         isPrivateRepository: "false"
-        limits:
+        requests:
           memory: "512Mi"
-          cpu: "200m"
+          cpu: "150m"
+        limits:
+          memory: "790Mi"
+          cpu: "240m"
     service:
       name: "odoo-service"
       port: "19801"
@@ -72,3 +79,7 @@ environment:
       host: "odoo-dev-ce-az.accounterprise.com"
       tls:
         secretName: "tls-certificate"
+      proxyReadTimeout: "3200"
+      proxyConnectTimeout: "180"
+      proxySendTimeout: "180"
+      clientMaxBodySize: "256m"
