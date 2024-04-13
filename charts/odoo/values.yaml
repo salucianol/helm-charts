@@ -53,6 +53,11 @@ environment:
     deployment:
       name: "odoo-deployment"
       replicas: "1"
+      vpa: 
+        enable: "true"
+        maxAllowed:
+          memory: "1Gi"
+          cpu: "300m"
       container:
         name: "odoo"
         imageName: "odoo"

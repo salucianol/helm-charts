@@ -93,6 +93,7 @@ spec:
     metadata:
       labels:
         app: {{ .Values.environment.prefix }}-odoo
+        vertical-autoscaling-enable: {{ quote .Values.environment.odoo.deployment.vpa.enable }}
     spec:
       containers:
       - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.container.name }}"
@@ -177,7 +178,7 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-connect-timeout: "{{ .Values.environment.odoo.ingress.proxyConnectTimeout }}"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "{{ .Values.environment.odoo.ingress.proxyReadTimeout }}"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "{{ .Values.environment.odoo.ingress.proxySendTimeout }}"
-    nginx.org/client-max-body-size: "{{ .Values.environment.odoo.ingress.clientMaxBodySize }}"
+    nginx.ingress.kubernetes.io/proxy-body-size: "{{ .Values.environment.odoo.ingress.clientMaxBodySize }}"
 spec:
   ingressClassName: {{ .Values.environment.odoo.ingress.className }}
   tls:
@@ -212,3 +213,29 @@ spec:
                 port:
                   number: {{ .Values.environment.odoo.service.geventPort }}
           {{ end }}
+{{ if eq .Values.environment.odoo.deployment.vpa.enable "true" }}
+---
+####################################
+#       Vertical Autoscaling       #
+####################################
+apiVersion: "autoscaling.k8s.io/v1"
+kind: VerticalPodAutoscaler
+metadata:
+  name: "{{ .Values.environment.prefix }}-vpa"
+  namespace: {{ .Values.resources.namespace }}
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.name }}"
+  updatePolicy:
+    updateMode: "Auto"
+  resourcePolicy:
+    containerPolicies:
+      - containerName: '*'
+        mode: "Auto"
+        maxAllowed:
+          memory: {{ .Values.environment.odoo.deployment.vpa.maxAllowed.memory }}
+          cpu: {{ .Values.environment.odoo.deployment.vpa.maxAllowed.cpu }}
+        controlledResources: [ "cpu", "memory" ]
+{{ end }}
