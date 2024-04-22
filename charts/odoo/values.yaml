@@ -55,6 +55,9 @@ environment:
       replicas: "1"
       vpa: 
         enable: "true"
+        minAllowed:
+          memory: "512Mi"
+          cpu: "150m"
         maxAllowed:
           memory: "1Gi"
           cpu: "300m"

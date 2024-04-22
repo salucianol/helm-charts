@@ -218,14 +218,14 @@ spec:
 ####################################
 #       Vertical Autoscaling       #
 ####################################
-apiVersion: "autoscaling.k8s.io/v1"
+apiVersion: autoscaling.k8s.io/v1
 kind: VerticalPodAutoscaler
 metadata:
   name: "{{ .Values.environment.prefix }}-vpa"
   namespace: {{ .Values.resources.namespace }}
 spec:
   targetRef:
-    apiVersion: apps/v1
+    apiVersion: "apps/v1"
     kind: Deployment
     name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.deployment.name }}"
   updatePolicy:
@@ -234,6 +234,9 @@ spec:
     containerPolicies:
       - containerName: '*'
         mode: "Auto"
+        minAllowed:
+          memory: {{ .Values.environment.odoo.deployment.vpa.minAllowed.memory }}
+          cpu: {{ .Values.environment.odoo.deployment.vpa.minAllowed.cpu }}
         maxAllowed:
           memory: {{ .Values.environment.odoo.deployment.vpa.maxAllowed.memory }}
           cpu: {{ .Values.environment.odoo.deployment.vpa.maxAllowed.cpu }}
