@@ -42,6 +42,7 @@ environment:
     maxRetries: 3
     sleepTime: 10
     modulesToInstall: "base,billing_do,professional_templates"
+    modulesToUpdate: "billing_do"
     configMap:
       name: "odoo-config-cm"
     persistentVolume:

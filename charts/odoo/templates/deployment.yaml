@@ -121,6 +121,8 @@ spec:
             value: {{ .Values.environment.prefix }}
           - name: ODOO_INITIAL_MODULES
             value: {{ .Values.environment.odoo.modulesToInstall }}
+          - name: ODOO_UPDATE_MODULES
+            value: {{ .Values.environment.odoo.modulesToUpdate }}
           - name: ODOO_EDITION
             value: "{{ .Values.environment.odoo.edition }}"
           - name: ODOO_ENVIRONMENT
