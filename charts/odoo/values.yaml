@@ -7,6 +7,12 @@ resources:
 environment:
   prefix: "accounterprise-ce"
   postgres:
+    enabled: false
+    hostname: "azdpodooprod01.postgres.database.azure.com"
+    username: "postgres_admin"
+    password: "NjSbRf5FyBqPhVQzT6dGLJoU9ZgaKpxk"
+    port: "5432"
+    databaseName: "odoo-default-db"
     persistentVolume:
       name: "postgres-data-pv"
       storageCapacity: "2Gi"
@@ -20,15 +26,12 @@ environment:
         name: "postgres"
         imageName: "postgres"
         imageTag: "16"
-        privateRepository: 
-          secretName: "postgres-private-repository-secret"
-          dockerUserName: ""
-          dockerUserPassword: ""
-          dockerUserEmail: ""
-        isPrivateRepository: "false"
-        limits:
+        requests:
           memory: "256Mi"
           cpu: "100m"
+        limits:
+          memory: "364Mi"
+          cpu: "150m"
         variables:
           postgresUser: "usr_odoo"
           postgresPassword: "Q37zfHgsswMnYQnKPZG4XQ5p"

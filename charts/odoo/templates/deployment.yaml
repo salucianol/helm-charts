@@ -109,6 +109,16 @@ spec:
         ports:
         - containerPort: 8069
         env:
+          {{ if eq .Values.environment.postgres.enable "true" }}
+          - name: HOST
+            value: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.name }}"
+          - name: PORT
+            value: {{ quote .Values.environment.postgres.port }}
+          - name: USER
+            value: "{{ .Values.environment.postgres.deployment.container.variables.postgresUser }}"
+          - name: PASSWORD
+            value: "{{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}"
+          {{ else }}
           - name: HOST
             value: "{{ .Values.environment.postgres.hostname }}"
           - name: PORT
@@ -117,6 +127,7 @@ spec:
             value: {{ .Values.environment.postgres.username }}
           - name: PASSWORD
             value: {{ .Values.environment.postgres.password }}
+          {{ end }}
           - name: DATABASE_NAME
             value: {{ .Values.environment.prefix }}
           - name: ODOO_INITIAL_MODULES
@@ -138,10 +149,38 @@ spec:
           - mountPath: "/etc/odoo/"
             name: {{ .Values.environment.prefix }}-odoo-config-v
             readOnly: false
+      {{ if eq .Values.environment.postgres.enable "true" }}
+      - name: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.deployment.container.name }}"
+        image: "{{ .Values.environment.postgres.deployment.container.imageName }}:{{ .Values.environment.postgres.deployment.container.imageTag }}"
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: {{ .Values.environment.postgres.deployment.container.requests.memory }}
+            cpu: {{ .Values.environment.postgres.deployment.container.requests.cpu }}
+          limits:
+            memory: {{ .Values.environment.postgres.deployment.container.limits.memory }}
+            cpu: {{ .Values.environment.postgres.deployment.container.limits.cpu }}
+        ports:
+        - containerPort: 5432
+        env:
+          - name: POSTGRES_USER
+            value: "{{ .Values.environment.postgres.deployment.container.variables.postgresUser }}"
+          - name: POSTGRES_PASSWORD
+            value: "{{ .Values.environment.postgres.deployment.container.variables.postgresPassword }}"
+        volumeMounts:
+          - mountPath: "/var/lib/postgresql"
+            name: {{ .Values.environment.prefix }}-postgres-data-v
+            readOnly: false
+      {{ end }}
       volumes:
         - name: {{ .Values.environment.prefix }}-odoo-data-v
           persistentVolumeClaim:
             claimName: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.persistentVolumeClaim.name }}"
+        {{ if eq .Values.environment.postgres.enable "true" }}
+        - name: {{ .Values.environment.prefix }}-postgres-data-v
+          persistentVolumeClaim:
+            claimName: "{{ .Values.environment.prefix }}-{{ .Values.environment.postgres.persistentVolumeClaim.name }}"
+        {{ end }}
         - name: {{ .Values.environment.prefix }}-odoo-config-v
           configMap:
             name: "{{ .Values.environment.prefix }}-{{ .Values.environment.odoo.configMap.name }}"
